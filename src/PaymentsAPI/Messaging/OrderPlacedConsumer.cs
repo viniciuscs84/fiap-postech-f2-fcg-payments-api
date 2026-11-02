@@ -16,6 +16,26 @@ public sealed class OrderPlacedConsumer(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ConsumeAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "RabbitMQ order consumer unavailable; retrying.");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
+    }
+
+    private async Task ConsumeAsync(CancellationToken stoppingToken)
+    {
         var factory = RabbitMqConnectionFactory.Create(options, "payments-api-order-consumer");
         await using var connection = await factory.CreateConnectionAsync(stoppingToken);
         await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
@@ -49,14 +69,19 @@ public sealed class OrderPlacedConsumer(
                 await processor.ProcessAsync(order, stoppingToken);
                 await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, stoppingToken);
             }
-            catch (Exception exception)
+            catch (JsonException exception)
             {
-                logger.LogError(exception, "Failed to process OrderPlacedEvent.");
+                logger.LogWarning(exception, "Ignoring malformed OrderPlacedEvent.");
                 await channel.BasicNackAsync(
                     delivery.DeliveryTag,
                     multiple: false,
                     requeue: false,
                     stoppingToken);
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Failed to process OrderPlacedEvent; requeueing.");
+                await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false, requeue: true, stoppingToken);
             }
         };
 

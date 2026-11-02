@@ -14,6 +14,7 @@ on the direct `fcg.events` exchange. It then publishes `PaymentProcessedEvent`
 using the `payment.processed` routing key. The publisher declares and binds the
 durable `catalog.payment-processed` and `notifications.payment-processed`
 queues before publishing, allowing either consumer to start later.
+The order consumer retries its initial broker connection if RabbitMQ is unavailable.
 
 `PaymentSimulation:Outcome` accepts `Approved` or `Rejected` and defaults to
 `Approved`. Restart the service after changing the value to demonstrate the
