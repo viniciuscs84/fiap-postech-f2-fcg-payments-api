@@ -30,3 +30,7 @@ $env:RabbitMq__Password = '<local-password>'
 The event payloads contain only user, game, price, result, and recipient email
 data required by the approved flow. No payment credentials or provider
 integration are used. `/health` reports process availability.
+
+## Container preparation
+
+`Dockerfile` publishes this service from its own repository into a .NET 8 runtime image. The image runs as the built-in non-root user and listens on port 8080. From this repository, build with `docker build -t fcg-payments-api .` when Docker is available. The sibling `Fase 2/Orchestration` repository provides the prepared Compose entry point.

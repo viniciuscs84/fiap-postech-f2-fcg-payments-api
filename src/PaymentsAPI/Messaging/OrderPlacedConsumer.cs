@@ -69,7 +69,7 @@ public sealed class OrderPlacedConsumer(
                 await processor.ProcessAsync(order, stoppingToken);
                 await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, stoppingToken);
             }
-            catch (JsonException exception)
+            catch (Exception exception) when (exception is JsonException or ArgumentException)
             {
                 logger.LogWarning(exception, "Ignoring malformed OrderPlacedEvent.");
                 await channel.BasicNackAsync(

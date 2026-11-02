@@ -23,6 +23,13 @@ public sealed class PaymentProcessor : IPaymentProcessor
 
     public Task ProcessAsync(OrderPlacedEvent order, CancellationToken cancellationToken)
     {
+        if (order.UserId == Guid.Empty || order.GameId == Guid.Empty ||
+            order.Price < 0 || string.IsNullOrWhiteSpace(order.RecipientEmail) ||
+            order.RecipientEmail.IndexOfAny(['\r', '\n']) >= 0 ||
+            !System.Net.Mail.MailAddress.TryCreate(order.RecipientEmail, out var address) ||
+            !string.Equals(address.Address, order.RecipientEmail, StringComparison.Ordinal))
+            throw new ArgumentException("OrderPlacedEvent contains invalid purchase data.", nameof(order));
+
         var payment = new PaymentProcessedEvent(
             order.UserId,
             order.GameId,

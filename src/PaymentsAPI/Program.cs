@@ -2,6 +2,8 @@ using PaymentsAPI.Messaging;
 using PaymentsAPI.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 var rabbitMqOptions = builder.Configuration
     .GetSection(RabbitMqOptions.SectionName)
